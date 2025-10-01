@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,12 +6,27 @@ using UnityEngine;
 
 public class StageController : MonoBehaviour
 {
+    #region Field
     [SerializeField] private BackgroundBlockSpawner backgroundBlockSpawner; // 배경 블록 생성
     [SerializeField] private BackgroundBlockSpawner foregroundBlockSpawner; // 배경 블록 생성
     [SerializeField] private DragBlockSpawner dragBlockSpawner; //드래그 블록 생성
-    [SerializeField] private BlockArrengeSystem blockArrangeSystem; // 블록 배치
+    [SerializeField] private BlockArrangeSystem blockArrangeSystem; // 블록 배치
     [SerializeField] private UIController uiController; // 게임오버 되었을 때 UI활성화
 
+    [SerializeField]
+    private AudioClip goodSound;
+
+    [SerializeField]
+    private AudioClip greatSound;
+
+    [SerializeField]
+    private AudioClip arrengeSound;
+    #endregion
+
+    public static StageController Instance { get; private set; }
+    public Action Revive;
+    public Action Pause;
+    public bool pause;
     public int CurrentScore { private set; get; } // 현재 점수
     public int HighScore { private set; get; } // 최고 점수
 
@@ -22,8 +38,11 @@ public class StageController : MonoBehaviour
     private readonly int maxDragBlockCount = 3; // 한 번에 생성할 수 있는 드래그 블록 개수
 
     private List<BackgroundBlock> filledBlockList = new(); // 줄이 완성된 블록들을 삭제하기 위해 임시 저장하는 리스트
+
     private void Awake()
     {
+        Instance = this;
+        pause = false;
         // 점수 초기화 (현재 점수, 최고 점수)
         CurrentScore = 0;
         HighScore = PlayerPrefs.GetInt("HighScore");
@@ -93,13 +112,42 @@ public class StageController : MonoBehaviour
         int filledLineCount = CheckFilledLine();
 
         // 완성된 줄이 없으면 0점, 완성된 줄이 있으면 2의 fiiledLineCount승 * 10점 (10, 20, 40, 80...)
-        int LineScore = filledLineCount == 0 ? 0 : (int)Mathf.Pow(2, filledLineCount - 1) * 10;
+        int LineScore = filledLineCount == 0 ? 0 : (int)Mathf.Pow(2, filledLineCount - 1) * 100;
+
 
         // 점수 계산 (블록 점수 + 라인 점수)
         CurrentScore += block.ChildBlocks.Length + LineScore;
 
         // 줄이 완성된 블록들을 삭제 (마지막에 배치한 블록을 기준으로 퍼져나가듯이 삭제)
+        if (filledLineCount > 0)
+        {
+            SoundManager.Instance.PlaySFX(arrengeSound, 0.3f);
+        }
+
+        switch (filledLineCount)
+        {
+            case 1:
+                uiController.Judgment("Good!", Color.green);
+                break;
+            case 2:
+                SoundManager.Instance.PlaySFX(goodSound, 0.5f);
+                uiController.Judgment("Great!", Color.blue);
+                break;
+            case 3:
+                SoundManager.Instance.PlaySFX(greatSound, 0.5f);
+                uiController.Judgment("Excellnt!", Color.cyan);
+                break;
+            case >= 4:
+                SoundManager.Instance.PlaySFX(greatSound, 0.7f);
+                SoundManager.Instance.PlaySFX(goodSound, 0.7f);
+                uiController.Judgment("Percfact!", Color.magenta);
+                break;
+            default:
+                break;
+        }
+
         yield return StartCoroutine(DestroyFilledBlocks(block));
+
 
         // 블록 배치에 성공했으니 현재 남아있는 드래그 블록의 개수를 1 감소
         currentDragBlockCount--;
@@ -110,23 +158,21 @@ public class StageController : MonoBehaviour
             yield return StartCoroutine(SpawnDragBlocks());
         }
 
+        if (CurrentScore > HighScore)
+        {
+            PlayerPrefs.SetInt("HighScore", CurrentScore);
+        }
+
         // 현재 프레임이 종료될 때까지 대기
         yield return new WaitForEndOfFrame();
 
         // 게임 진행이 가능한지 검사
         if (IsGameOver())
         {
-            // Debug.Log("GameOver");
-
-            // 현재 점수가 최고 점수보다 높으면 현재 점수를 최고 점수로 갱신
-            if (CurrentScore > HighScore)
-            {
-                PlayerPrefs.SetInt("HighScore", CurrentScore);
-            }
-            // 게임오버 되었을 때 출력하는 Panel UI를 활성화하고, 스크린샷, 점수 등 갱신
+            pause = true;
+            currentDragBlockCount = 3;
             uiController.GameOver();
         }
-
     }
 
     private int CheckFilledLine()
@@ -199,7 +245,6 @@ public class StageController : MonoBehaviour
     private bool IsGameOver()
     {
         int dragBlockCount = 0;
-
         // 배치 가능한 드래그 블록이 남아있을 때
         for (int i = 0; i < dragBlockSpawner.BlockSpawPoints.Length; ++i)
         {

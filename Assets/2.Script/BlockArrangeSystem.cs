@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BlockArrengeSystem : MonoBehaviour
+public class BlockArrangeSystem : MonoBehaviour
 {
     private Vector2Int blockCount;
     private Vector2 blockHalf;
