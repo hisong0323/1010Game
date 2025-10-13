@@ -15,7 +15,8 @@ public class UIController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI textCurrentScore;
     [SerializeField] private TextMeshProUGUI textHighScore;
     [SerializeField] private GameObject pausePanel;
-    [SerializeField] private Text judgmentText;
+    [SerializeField] private Image arrangeEffectImage;
+    [SerializeField] private Sprite[] arrangeEffectSprites;
 
     [Header("GameOver")]
     [SerializeField]
@@ -30,7 +31,7 @@ public class UIController : MonoBehaviour
     [SerializeField] private Text resultScore;
     [SerializeField] private Text highScore;
 
-    private int reviveCount;
+    private bool revive;
 
     private void Update()
     {
@@ -79,14 +80,21 @@ public class UIController : MonoBehaviour
 
          panelGameOver.SetActive(true);*/
 
-        if (stageController.CurrentScore >= 100 && reviveCount < 1)
+        if (AdMobManager.Instance.Acive)
         {
-            reviveCount++;
-            adView.SetActive(true);
+            if (stageController.CurrentScore >= 100 && !revive)
+            {
+                revive = true;
+                adView.SetActive(true);
+            }
+            else
+            {
+                AdMobManager.Instance.ShowFronAd();
+                ShowGameOverView();
+            }
         }
         else
         {
-            AdMobManager.Instance.ShowFronAd();
             ShowGameOverView();
         }
     }
@@ -113,16 +121,16 @@ public class UIController : MonoBehaviour
         highScore.text = stageController.HighScore.ToString();
     }
 
-    public void Judgment(string message, Color color)
+    public void ArrangeEffect(int filledLineCount)
     {
-        judgmentText.text = message;
-        judgmentText.color = color;
-        judgmentText.transform.DOKill();
-        judgmentText.transform.localScale = Vector3.zero;
-        judgmentText.transform.DOScale(2.5f, 0.4f).SetEase(Ease.OutQuad)
+        arrangeEffectImage.sprite = arrangeEffectSprites[filledLineCount - 1];
+
+        arrangeEffectImage.transform.DOKill();
+        arrangeEffectImage.transform.localScale = Vector3.zero;
+        arrangeEffectImage.transform.DOScale(1.5f, 0.4f).SetEase(Ease.OutQuad)
             .OnComplete(() =>
             {
-                judgmentText.transform.localScale = Vector3.zero;
+                arrangeEffectImage.transform.localScale = Vector3.zero;
             });
     }
 }

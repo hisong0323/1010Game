@@ -45,7 +45,7 @@ public class StageController : MonoBehaviour
         pause = false;
         // 점수 초기화 (현재 점수, 최고 점수)
         CurrentScore = 0;
-        HighScore = PlayerPrefs.GetInt("HighScore");
+        HighScore = PlayerPrefs.GetInt("HighScore", 0);
 
         // 뒷 배경으로 사용되는 배경 블록만 생성
         backgroundBlockSpawner.SpawnBlocks(blockCount, blockHalf);
@@ -122,25 +122,22 @@ public class StageController : MonoBehaviour
         if (filledLineCount > 0)
         {
             SoundManager.Instance.PlaySFX(arrengeSound, 0.3f);
+            uiController.ArrangeEffect(filledLineCount);
         }
+
+
 
         switch (filledLineCount)
         {
-            case 1:
-                uiController.Judgment("Good!", Color.green);
-                break;
             case 2:
                 SoundManager.Instance.PlaySFX(goodSound, 0.5f);
-                uiController.Judgment("Great!", Color.blue);
                 break;
             case 3:
                 SoundManager.Instance.PlaySFX(greatSound, 0.5f);
-                uiController.Judgment("Excellnt!", Color.cyan);
                 break;
             case >= 4:
                 SoundManager.Instance.PlaySFX(greatSound, 0.7f);
                 SoundManager.Instance.PlaySFX(goodSound, 0.7f);
-                uiController.Judgment("Percfact!", Color.magenta);
                 break;
             default:
                 break;
@@ -160,6 +157,7 @@ public class StageController : MonoBehaviour
 
         if (CurrentScore > HighScore)
         {
+            HighScore = CurrentScore;
             PlayerPrefs.SetInt("HighScore", CurrentScore);
         }
 

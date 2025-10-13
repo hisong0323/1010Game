@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 public class AdMobManager : MonoBehaviour
 {
     public static AdMobManager Instance { get; private set; }
+    public bool Acive;
 
     private BannerView _bannerView;
     private InterstitialAd _frontAd;
@@ -12,6 +13,7 @@ public class AdMobManager : MonoBehaviour
 
     private void Awake()
     {
+
         if (Instance != null)
         {
             Destroy(gameObject);
@@ -21,13 +23,14 @@ public class AdMobManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        SceneManager.sceneLoaded += OnSceneLoaded;
+        gameObject.SetActive(Acive);
     }
 
     private void Start()
     {
         MobileAds.Initialize((InitializationStatus status) =>
         {
+            SceneManager.sceneLoaded += OnSceneLoaded;
             LoadFrontAd();
             LoadRewardAd();
         });
